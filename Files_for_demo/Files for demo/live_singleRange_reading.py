@@ -8,8 +8,11 @@ import serial #Import Serial Library
 
 import time
 from time import sleep
-arduinoSerialData = serial.Serial('/dev/ttyUSB0',115200) #Create Serial port object called arduinoSerialData
 
+import select_serial
+
+#arduinoSerialData = serial.Serial('/dev/ttyUSB0',115200) #Create Serial port object called arduinoSerialData
+arduinoSerialData = select_serial.select(115200)
 
 style.use('fivethirtyeight')
 
@@ -30,7 +33,7 @@ def animate(i):
     global count
     
     if (arduinoSerialData.inWaiting()>0): #Check if data is on the serial port
-     new_data_as_string = arduinoSerialData.readline()
+     new_data_as_string = arduinoSerialData.readline().decode("utf-8")
      new_data_string = new_data_as_string.strip()  
      if (new_data_string !=''):
       new_data = float(new_data_string)

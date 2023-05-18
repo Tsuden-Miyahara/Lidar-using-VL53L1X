@@ -1,0 +1,16 @@
+
+vl53l1_def.h #348  -> VL53L1_RangingMeasurementData_t
+                      [
+                         ...
+                         uint8_t RangeFractionalPart
+                         : Fractional part of range distance. Final value is a RangeMilliMeter + RangeFractionalPart/256.
+                             ---------------------
+                            | Warning             |
+                            | Not yet implemented |
+                             ---------------------
+                      ]
+
+
+vl53l1_api.c #2159 -> VL53L1_GetRangingMeasurementData()
+             #2029 -> SetSimpleData()
+                   -> pRangeData->RangeFractionalPart = 0;
