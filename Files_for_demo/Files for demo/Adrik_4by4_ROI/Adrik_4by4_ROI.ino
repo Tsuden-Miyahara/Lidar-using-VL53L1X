@@ -11,6 +11,8 @@
 #define SW_PIN 36
 #define MAX_STATE_LEVEL 3
 
+bool debug_mode = false;
+
 BluetoothSerial SerialBT;
 
 VL53L1_Dev_t dev;  //Dev           : Device handleDev
@@ -27,12 +29,31 @@ uint ROI_CONFIG_LENGTH;
 VL53L1_UserRoi_t roiConfig[25];
 
 uint8_t state = 0;
-uint8_t stateUpdate() {
+uint8_t _stateUpdate() {
   state += 1;
   if (MAX_STATE_LEVEL < state) {
     state = 0;
   }
   return state;
+}
+void stateUpdate() {
+  switch ( _stateUpdate() ) {
+    case 0:
+      setRoiConfig(4, 4);
+      break;
+    case 1:
+      setRoiConfig(2, 2);
+      break;
+    case 2:
+      setRoiConfig(1, 2);
+      break;
+    case 3:
+      setRoiConfig(2, 1);
+      break;
+    default:
+      break;
+  }
+  delay(10);
 }
 
 void setRoiConfig(uint roi_size_x, uint roi_size_y) {
@@ -73,6 +94,12 @@ void pad(uint value, uint8_t length = 4) {
 void setup() {
   pinMode(SW_PIN, INPUT);
 
+  if (digitalRead(SW_PIN) == LOW) {
+    debug_mode = true;
+    delay(1000);
+    Serial.println("Debug mode");
+  }
+
   uint8_t byteData;
   uint16_t wordData;
 
@@ -88,14 +115,20 @@ void setup() {
   VL53L1_software_reset(Dev);
 
   VL53L1_RdByte(Dev, 0x010F, &byteData);
-  //Serial.print(F("VL53L1X Model_ID: "));
-  //Serial.println(byteData, HEX);
+  if (debug_mode) {
+    Serial.print(F("VL53L1X Model_ID: "));
+    Serial.println(byteData, HEX);
+  }
   VL53L1_RdByte(Dev, 0x0110, &byteData);
-  //Serial.print(F("VL53L1X Module_Type: "));
-  //Serial.println(byteData, HEX);
+  if (debug_mode) {
+    Serial.print(F("VL53L1X Module_Type: "));
+    Serial.println(byteData, HEX);
+  }
   VL53L1_RdWord(Dev, 0x010F, &wordData);
-  //Serial.print(F("VL53L1X: "));
-  //Serial.println(wordData, HEX);
+  if (debug_mode) {
+    Serial.print(F("VL53L1X: "));
+    Serial.println(wordData, HEX);
+  }
 
   //Serial.println(F("Autonomous Ranging Test"));
   status = VL53L1_WaitDeviceBooted(Dev);
@@ -117,7 +150,6 @@ void setup() {
 }
 
 unsigned long temp_millis;
-
 void loop_inner() {
   static VL53L1_RangingMeasurementData_t RangingData;
 
@@ -136,20 +168,20 @@ void loop_inner() {
         if (status == 0) {
           distance[i] = RangingData.RangeMilliMeter;
 
-          pad(RangingData.RangeMilliMeter, 4);
-          Serial.print(" -> ROI: ");
-          Serial.print(" Top-Left  [X,Y]: [");
-          pad(roiConfig[i].TopLeftX, 2);
-          Serial.print(", ");
-          pad(roiConfig[i].TopLeftY, 2);
-          Serial.println("],");
-          Serial.print("              Bot-Right [X,Y]: [");
-          pad(roiConfig[i].BotRightX, 2);
-          Serial.print(", ");
-          pad(roiConfig[i].BotRightY, 2);
-          Serial.println("]");
-          /*
-          */
+          if (debug_mode) {
+            pad(RangingData.RangeMilliMeter, 4);
+            Serial.print(" -> ROI: ");
+            Serial.print(" Top-Left  [X,Y]: [");
+            pad(roiConfig[i].TopLeftX, 2);
+            Serial.print(", ");
+            pad(roiConfig[i].TopLeftY, 2);
+            Serial.println("],");
+            Serial.print("              Bot-Right [X,Y]: [");
+            pad(roiConfig[i].BotRightX, 2);
+            Serial.print(", ");
+            pad(roiConfig[i].BotRightY, 2);
+            Serial.println("]");
+          }
         }
       }
     }
@@ -193,22 +225,7 @@ void loop_inner() {
 
 void loop() {
   if (digitalRead(SW_PIN) == LOW) {
-    switch ( stateUpdate() ) {
-      case 0:
-        setRoiConfig(4, 4);
-        break;
-      case 1:
-        setRoiConfig(2, 2);
-        break;
-      case 2:
-        setRoiConfig(1, 2);
-        break;
-      case 3:
-        setRoiConfig(2, 1);
-        break;
-      default:
-        break;
-    }
+    stateUpdate();
     while(digitalRead(SW_PIN) == LOW) loop_inner();
   }
   loop_inner();

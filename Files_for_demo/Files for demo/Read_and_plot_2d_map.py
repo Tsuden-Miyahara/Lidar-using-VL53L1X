@@ -76,12 +76,13 @@ if con_serial:
     def animate(iter):
         global distances_matrix, text_list
         if (con_serial.inWaiting() > 0): #Check if data is on the serial port
-            data_receving = con_serial.readline().decode("utf-8").strip()
             try:
-                obj = json.loads(data_receving)
+                line = con_serial.readline()
+                data_received = line.decode("utf-8").strip()
+                obj = json.loads(data_received)
                 # print(obj)
             except Exception as e:
-                print(e, data_receving)
+                # print(e)
                 return
             
             _temp = (obj["size_x"], obj["size_y"])
@@ -148,5 +149,10 @@ if con_serial:
 
     setup()
     anim = animation.FuncAnimation(fig, animate, interval=20, blit=False, repeat=False)
+
+    manager = plt.get_current_fig_manager()
+    manager.set_window_title('color mesh')
+    manager.resize(800, 650)
+
     plt.show()
 
