@@ -104,22 +104,25 @@ if con_serial:
                 """
                 if 1 < matrix_y:
                     a = distances_matrix[:,0:1]
-                    #a = np.flipud(a)
                     b = distances_matrix[:, 1:matrix_y]
-                    #| a4, b, b, b,
-                    #| a3, b, b, b,
-                    #| a2, b, b, b,
-                    #| a1, b, b, b,
+                    # 3| a4, b, b, b,
+                    # 2| a3, b, b, b,
+                    # 1| a2, b, b, b,
+                    # 0|*a1, b, b, b,
+                    #   -------------
+                    #     0  1  2  3
                     if 1 < matrix_x:
                         a1   = a[0:1, :]
                         a234 = a[1:matrix_x, :]
                         a = np.concatenate( (a234, a1) )
 
                     distances_matrix = np.concatenate( (b, a), axis=1 )
-                    #| b, b, b, a1,
-                    #| b, b, b, a4,
-                    #| b, b, b, a3,
-                    #| b, b, b, a2,
+                    # 3| b, b, b,*a1,
+                    # 2| b, b, b, a4,
+                    # 1| b, b, b, a3,
+                    # 0| b, b, b, a2,
+                    #   -------------
+                    #     0  1  2  3
 
                     if matrix_x < 2:
                         distances_matrix = np.flipud(distances_matrix)
