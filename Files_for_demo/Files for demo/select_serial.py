@@ -1,15 +1,16 @@
 import serial
 from serial.tools import list_ports
+import questionary
 
 def select(bau: int = 9600):
     ports = list_ports.comports()
-    devices = [v.device for v in ports]
-    if not len(devices):
+    if not len(ports):
         raise IndexError('no detected serial')
-    for i, d in enumerate(devices):
-        print(f'{i}. {d}')
-    try:
-        num = int(input('select index: '))
-    except ValueError:
-        num = 0
-    return serial.Serial(devices[num], bau)
+    obj = {}
+    for v in ports: obj[v.description] = v.device
+    key = questionary.select("select", choices=obj).ask()
+    if not key:
+        raise IndexError('serial unselected')
+    ser = serial.Serial(obj[key], bau)
+    ser.set_buffer_size(rx_size = 12800, tx_size = 12800)
+    return ser

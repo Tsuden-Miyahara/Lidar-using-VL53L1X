@@ -6,6 +6,11 @@ import matplotlib.animation as animation
 from matplotlib import style
 from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+import tkinter as tk
+from gui import GUI
 import numpy as np
 
 import json
@@ -15,13 +20,15 @@ from time import sleep
 
 import select_serial
 
+
+
 try:
     con_serial = select_serial.select(115200)
 except:
     con_serial = None
 
 if con_serial:
-    fig = plt.figure(figsize=None, facecolor='white')
+    fig = plt.figure(figsize=(5, 5)) # , facecolor='white'
     ax2 = plt.subplot()
 
 
@@ -73,8 +80,9 @@ if con_serial:
         #print(f"[x, y] = [{x}, {y}] ({num})")
         return ax2.text(x + 0.5, y + 0.5, f"{num}", horizontalalignment="center", verticalalignment="center", size='small', bbox=boxdic)
 
-    def animate(iter):
+    def animate(qmesh_iter):
         global distances_matrix, text_list
+        qmesh, = qmesh_iter
         if (con_serial.inWaiting() > 0): #Check if data is on the serial port
             data_receving = con_serial.readline().decode("utf-8").strip()
             try:
@@ -120,11 +128,6 @@ if con_serial:
                     #| b, b, b, a3,
                     #| b, b, b, a2,
 
-                    if matrix_x < 2:
-                        distances_matrix = np.flipud(distances_matrix)
-                else:
-                    distances_matrix = np.flip(distances_matrix)
-
                 print('')
                 print('@ ====  ====  ====  ==== @')
                 print('')
@@ -134,7 +137,7 @@ if con_serial:
             
 
                 data = distances_matrix.ravel()
-                quad1.set_array(data)
+                qmesh.set_array(data)
 
 
                 [txt.remove() for txt in text_list]
@@ -145,8 +148,28 @@ if con_serial:
                 ]
                 #raise TypeError('test')
 
+            return qmesh,
+
 
     setup()
-    anim = animation.FuncAnimation(fig, animate, interval=20, blit=False, repeat=False)
-    plt.show()
+    # anim = animation.FuncAnimation(fig, animate, interval=20, blit=False, repeat=False)
+    # plt.show()
 
+    gui = GUI("color mesh")
+
+    def gui_setup(root: tk.Tk):
+        root.geometry("800x800")
+        canvas = FigureCanvasTkAgg(fig, master=root)
+        canvas.draw()
+        toolbar = NavigationToolbar2Tk(canvas, root, pack_toolbar=False)
+        toolbar.update()
+        # button = tk.Button(master=root, text="Quit", command=root.quit)
+        # button.pack(side=tk.BOTTOM)
+        toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        anim = animation.FuncAnimation(fig, animate, fargs=(quad1,), interval=20, blit=True, repeat=False)#, cache_frame_data=True, save_count=100
+        # try: anim.save()
+        # except: print('anim')
+
+    gui.setup(gui_setup)
+    gui.run()
