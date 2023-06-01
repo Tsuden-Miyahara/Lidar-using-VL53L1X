@@ -114,7 +114,7 @@ if con_serial:
     before_data = {}
     current_data = {}
     fpath = get_fname('Log', 'csv')
-    write_csv_line(fpath, ['millis', 'size_x', 'size_y'])
+    write_csv_line(fpath, ['size_x', 'size_y', ''] + [f'data_{i}' for i in range(16)])
 
     def ser_worker():
         global ser_enable, current_data, ms_before, ms_after
@@ -128,7 +128,7 @@ if con_serial:
                         ms_before = current_data['millis']
                         ms_after  = obj['millis']
                     current_data = obj
-                    write_csv_line(fpath, [obj["millis"], obj["size_x"], obj["size_y"]] + obj['data'])
+                    write_csv_line(fpath, [obj["size_x"], obj["size_y"], obj["millis"]] + obj['data'])
             except Exception as e:
                 print(e, data_receving)
 
