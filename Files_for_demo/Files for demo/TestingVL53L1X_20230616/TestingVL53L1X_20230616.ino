@@ -9,7 +9,7 @@
 #include <math.h>
 
 #define SW_PIN 36
-#define MAX_STATE_LEVEL 4
+#define MAX_STATE_LEVEL 3
 
 bool debug_mode = false;
 
@@ -28,7 +28,7 @@ uint ROI_CONFIG_LENGTH;
 // VL53L1_UserRoi_t roiConfig[25];  //For definig 25 ROI configurations
 VL53L1_UserRoi_t roiConfig[25];
 
-uint8_t state = 0;
+uint8_t state = MAX_STATE_LEVEL;
 uint8_t _stateUpdate() {
   state += 1;
   if (MAX_STATE_LEVEL < state) {
@@ -39,19 +39,16 @@ uint8_t _stateUpdate() {
 void stateUpdate() {
   switch ( _stateUpdate() ) {
     case 0:
-      setRoiConfig(4, 4);
+      setRoiConfig(1, 1);
       break;
     case 1:
-      setRoiConfig(2, 2);
-      break;
-    case 2:
       setRoiConfig(1, 2);
       break;
-    case 3:
-      setRoiConfig(2, 1);
+    case 2:
+      setRoiConfig(2, 2);
       break;
-    case 4:
-      setRoiConfig(1, 1);
+    case 3:
+      setRoiConfig(4, 4);
       break;
     default:
       break;
@@ -72,22 +69,20 @@ void setRoiConfig(uint roi_size_x, uint roi_size_y) {
         seg_x * x,               15 - (seg_x * y),    // Top-Left
         (seg_x * (x + 1) - 1),   15 - (seg_y * y + 3) // Bottom-Right
       };*/
-      VL53L1_UserRoi_t uROI;
 
-      uROI.TopLeftX  = seg_x * x;
-      uROI.TopLeftY  = 15 - (seg_y * y);
+      roiConfig[i].TopLeftX  = seg_x * x;
+      roiConfig[i].TopLeftY  = 15 - (seg_y * y);
 
-      uROI.BotRightX = seg_x * (x + 1) - 1;
-      uROI.BotRightY = 15 - (seg_y * (y + 1) - 1);
+      roiConfig[i].BotRightX = seg_x * (x + 1) - 1;
+      roiConfig[i].BotRightY = 15 - (seg_y * (y + 1) - 1);
       
-      roiConfig[i] = uROI;
       i++;
     }
   }
   
 }
 
-void pad(uint value, uint8_t length = 4) {  
+void pad(uint value, uint8_t length = 4) {
   uint8_t dig = log10(value) + 1;
   if (!value) dig = 1;
   for (uint8_t x = 0; x < length - dig; x++) Serial.print(" ");
@@ -117,18 +112,16 @@ void setup() {
 
   VL53L1_software_reset(Dev);
 
-  VL53L1_RdByte(Dev, 0x010F, &byteData);
   if (debug_mode) {
+    VL53L1_RdByte(Dev, 0x010F, &byteData);
     Serial.print(F("VL53L1X Model_ID: "));
     Serial.println(byteData, HEX);
-  }
-  VL53L1_RdByte(Dev, 0x0110, &byteData);
-  if (debug_mode) {
+
+    VL53L1_RdByte(Dev, 0x0110, &byteData);
     Serial.print(F("VL53L1X Module_Type: "));
     Serial.println(byteData, HEX);
-  }
-  VL53L1_RdWord(Dev, 0x010F, &wordData);
-  if (debug_mode) {
+    
+    VL53L1_RdWord(Dev, 0x010F, &wordData);
     Serial.print(F("VL53L1X: "));
     Serial.println(wordData, HEX);
   }
@@ -143,13 +136,13 @@ void setup() {
   status = VL53L1_StartMeasurement(Dev);
 
   if (status) {
-    //Serial.println(F("VL53L1_StartMeasurement failed"));
-    while (1)
-      ;
+    delay(250);
+    Serial.println(F("VL53L1_StartMeasurement failed"));
+    while (1);
   }
 
   // Creating 16 ROI definition
-  setRoiConfig(4, 4);
+  stateUpdate();
 }
 
 unsigned long temp_millis;
@@ -164,6 +157,18 @@ void loop_inner() {
       for (i = 0; i < ROI_CONFIG_LENGTH; i++) {
         // switching ROI configs
         status = VL53L1_SetUserROI(Dev, &roiConfig[i]);
+        /*
+        Serial.print(status);
+        Serial.print("> [TL: (");
+        Serial.print(roiConfig[i].TopLeftX);
+        Serial.print(",");
+        Serial.print(roiConfig[i].TopLeftY);
+        Serial.print(") - BR: (");
+        Serial.print(roiConfig[i].BotRightX);
+        Serial.print(",");
+        Serial.print(roiConfig[i].BotRightY);
+        Serial.println(")]");
+        */
         status = VL53L1_WaitMeasurementDataReady(Dev);
         if (!status) status = VL53L1_GetRangingMeasurementData(Dev, &RangingData);
         VL53L1_clear_interrupt_and_enable_next_range(Dev, VL53L1_DEVICEMEASUREMENTMODE_SINGLESHOT);

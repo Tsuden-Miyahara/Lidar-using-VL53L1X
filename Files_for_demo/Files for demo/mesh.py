@@ -185,6 +185,9 @@ if con_serial:
             print(distances_matrix)
         
 
+            if matrix_x == 1 and matrix_y == 2:
+                distances_matrix = np.flipud(distances_matrix)
+
             data = distances_matrix.ravel()
             quad1.set_array(data)
 
